@@ -1,0 +1,19 @@
+{
+  "name": "QuizForge",
+  "short_name": "QuizForge",
+  "description": "Transform any document into a smart quiz in seconds.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f5efdf",
+  "theme_color": "#1a1208",
+  "icons": [
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

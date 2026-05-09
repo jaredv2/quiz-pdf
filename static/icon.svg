@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="QuizForge">
+  <rect width="512" height="512" fill="#1a1208"/>
+  <rect x="74" y="62" width="364" height="388" fill="#f5efdf" stroke="#c47f2a" stroke-width="18"/>
+  <path d="M134 150h244M134 214h244M134 278h146" stroke="#3d2e1a" stroke-width="24" stroke-linecap="square"/>
+  <rect x="132" y="338" width="68" height="68" fill="#c47f2a"/>
+  <path d="M228 370l40 40 108-122" fill="none" stroke="#3d6b45" stroke-width="34" stroke-linecap="square" stroke-linejoin="miter"/>
+</svg>

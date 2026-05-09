@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
 <title>QuizForge — AI-Powered Quiz Generator</title>
 <meta name="description" content="Transform any document into a smart quiz in seconds. Powered by AI."/>
+<meta name="theme-color" content="#1a1208"/>
+<meta name="application-name" content="QuizForge"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="QuizForge"/>
+<link rel="manifest" href="/manifest.webmanifest"/>
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml"/>
+<link rel="apple-touch-icon" href="/static/icon.svg"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
@@ -643,7 +650,7 @@ input:checked+.tgl-track::before{transform:translateX(20px);background:#fff}
     <div class="qfl">
       <button class="nbtn" id="pbtn" onclick="gS(-1)" disabled data-i="prev">← Prev</button>
       <div class="sdots" id="sdots"></div>
-      <button class="nbtn" id="nbtn" onclick="gS(1)" data-i="next">Next →</button>
+      <button class="nbtn" id="nbtn" onclick="nextOrSubmit()" data-i="next">Next →</button>
     </div>
     <div class="qfr">
       <span class="utag warn" id="utag"></span>
@@ -799,6 +806,7 @@ function setLang(l){
   document.getElementById('lb-fr').classList.toggle('active',l==='fr');
   document.documentElement.lang=l;
   applyI18n();
+  updFoot();
 }
 function applyI18n(){
   document.querySelectorAll('[data-i]').forEach(el=>{
@@ -1060,6 +1068,13 @@ function gS(dir){
   if(n<0||n>=S.qdata.questions.length)return;
   gSlide(n);SFX.nav(dir);
 }
+function nextOrSubmit(){
+  if(!S.qdata)return;
+  const qs=S.qdata.questions;
+  const allAnswered=qs.length>0&&qs.every(q=>isAns(q));
+  if(allAnswered){subQ();return}
+  gS(1);
+}
 function gSlide(idx,animate=true){
   if(S.animating)return;
   const slides=document.querySelectorAll('.slide');
@@ -1099,7 +1114,11 @@ function updFoot(){
   const un=total-ans;
   document.getElementById('qfill').style.width=((ans/total)*100)+'%';
   document.getElementById('pbtn').disabled=S.slide===0;
-  document.getElementById('nbtn').disabled=S.slide===total-1;
+  const nbtn=document.getElementById('nbtn');
+  const allAnswered=ans===total;
+  nbtn.disabled=!allAnswered&&S.slide===total-1;
+  nbtn.dataset.i=allAnswered?'submitBtn':'next';
+  nbtn.textContent=allAnswered?t('submitBtn'):t('next');
   const ut=document.getElementById('utag');
   ut.textContent=un>0?`${un} ${t('leftLabel')}`:t('allDone');
   ut.className='utag'+(un>0?' warn':'');
@@ -1217,6 +1236,9 @@ document.addEventListener('keydown',e=>{
 
 // Init
 applyI18n();
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>{}));
+}
 </script>
 </body>
 </html>

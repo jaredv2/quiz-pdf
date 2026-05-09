@@ -93,6 +93,16 @@ def index():
     return send_from_directory("static", "index.html")
 
 
+@app.route("/manifest.webmanifest")
+def manifest():
+    return send_from_directory("static", "manifest.webmanifest", mimetype="application/manifest+json")
+
+
+@app.route("/service-worker.js")
+def service_worker():
+    return send_from_directory("static", "service-worker.js", mimetype="text/javascript")
+
+
 @app.route("/api/analyze", methods=["POST"])
 def analyze():
     body = request.get_json()
