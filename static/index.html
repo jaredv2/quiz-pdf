@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+<title>QuizForge — AI-Powered Quiz Generator</title>
+<meta name="description" content="Transform any document into a smart quiz in seconds. Powered by AI."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════ TOKENS */
+:root{
+  --ink:#1a1208;--ink2:#3d2e1a;--ink3:#6b5240;
+  --parch:#f5efdf;--parch2:#ede3cc;--parch3:#e2d5b8;--parch4:#d8c9a3;
+  --amber:#c47f2a;--amber2:#e8a53a;--rust:#a84020;--sage:#3d6b45;
+  --mono:'IBM Plex Mono',monospace;--serif:'Playfair Display',serif;--sans:'IBM Plex Sans',sans-serif;
+  --sh:4px 4px 0 var(--ink2);--sh-h:6px 6px 0 var(--ink);
+  --bdr:2px solid var(--ink2);--bdr-h:3px solid var(--ink);
+}
+/* ═══════════════════════════════════════ RESET */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%}
+body{
+  font-family:var(--sans);font-size:16px;line-height:1.6;color:var(--ink);
+  background:var(--parch);overflow:hidden;
+  background-image:
+    radial-gradient(ellipse at 5% 15%,rgba(196,127,42,.07) 0%,transparent 45%),
+    radial-gradient(ellipse at 95% 85%,rgba(168,64,32,.05) 0%,transparent 45%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='1' height='1' fill='%23c47f2a' opacity='0.06'/%3E%3C/svg%3E");
+}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
+input,select,textarea{font-family:inherit}
+
+/* ═══════════════════════════════════════ CUSTOM SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--parch3)}
+::-webkit-scrollbar-thumb{background:var(--ink3);border:none}
+::-webkit-scrollbar-thumb:hover{background:var(--ink2)}
+*{scrollbar-width:thin;scrollbar-color:var(--ink3) var(--parch3)}
+
+/* ═══════════════════════════════════════ APP SHELL */
+#app{
+  display:grid;
+  grid-template-rows:auto 1fr;
+  height:100vh;
+  width:100%;
+  overflow:hidden;
+}
+
+/* ═══════════════════════════════════════ GLOBAL HEADER */
+#gh{
+  border-bottom:var(--bdr-h);padding:11px 24px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--parch);z-index:100;flex-shrink:0;
+  width:100%;
+}
+.logo{font-family:var(--serif);font-size:clamp(18px,2.5vw,26px);font-weight:900;letter-spacing:-1px;line-height:1;user-select:none}
+.logo em{color:var(--amber);font-style:normal}
+.gh-right{display:flex;align-items:center;gap:16px}
+.lang-btn{
+  font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  color:var(--ink3);border:1px solid var(--ink3);padding:3px 8px;transition:all .15s;
+}
+.lang-btn:hover,.lang-btn.active{background:var(--ink);color:var(--parch);border-color:var(--ink)}
+.page-dots{display:flex;gap:6px;align-items:center}
+.pdot{
+  width:9px;height:9px;border:2px solid var(--ink3);background:transparent;
+  transition:background .2s,border-color .2s;border-radius:0;
+}
+.pdot.active{background:var(--amber);border-color:var(--amber)}
+.pdot.done{background:var(--ink3);border-color:var(--ink3)}
+
+/* ═══════════════════════════════════════ PAGE SYSTEM */
+/* All pages sit in the same grid cell, toggled by .active */
+.pg{
+  display:none;
+  width:100%;height:100%;
+  overflow:hidden;
+}
+.pg.active{display:flex;flex-direction:column}
+
+/* ═══════════════════════════════════════
+   PAGE 1 — UPLOAD
+   Full-width no centering padding
+═══════════════════════════════════════ */
+#pg-upload{overflow-y:auto;overflow-x:hidden}
+.upload-wrap{
+  width:100%;max-width:800px;
+  margin:0 auto;
+  padding:32px 24px 80px;
+}
+.upload-hero{margin-bottom:24px}
+.eyebrow{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:var(--ink3);margin-bottom:6px}
+.upload-hero h1{font-family:var(--serif);font-size:clamp(28px,5vw,46px);font-weight:900;line-height:1.1}
+.upload-hero h1 em{color:var(--amber);font-style:normal}
+
+/* Input tabs */
+.itabs{display:flex;gap:0;margin-bottom:16px;border:var(--bdr)}
+.itab{
+  flex:1;padding:10px 6px;background:var(--parch2);
+  font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  color:var(--ink3);border-right:1px solid var(--ink3);transition:all .1s;
+}
+.itab:last-child{border-right:none}
+.itab:hover{background:var(--parch3)}
+.itab.active{background:var(--ink);color:var(--parch)}
+
+/* Input panels */
+.ipanel{display:none}
+.ipanel.active{display:block}
+
+/* Drop zone */
+.dz{
+  border:var(--bdr-h);background:var(--parch2);
+  padding:36px 20px;text-align:center;cursor:pointer;
+  transition:transform .12s,box-shadow .12s,background .1s;
+  box-shadow:var(--sh);margin-bottom:10px;position:relative;overflow:hidden;
+  will-change:transform;
+}
+.dz::after{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(45deg,transparent,transparent 18px,rgba(196,127,42,.03) 18px,rgba(196,127,42,.03) 19px);
+  pointer-events:none;
+}
+.dz:hover,.dz.drag{background:var(--parch3);box-shadow:var(--sh-h);transform:translate(-2px,-2px)}
+.dz-icon{font-size:36px;display:block;margin-bottom:10px}
+.dz h2{font-family:var(--mono);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.dz p{font-size:12px;color:var(--ink3);font-family:var(--mono)}
+#fi{display:none}
+.fpill{
+  display:none;align-items:center;gap:8px;
+  background:var(--ink);color:var(--parch);padding:8px 14px;
+  font-family:var(--mono);font-size:12px;margin-bottom:10px;
+  animation:sIn .2s ease;
+}
+.fpill.show{display:flex}
+.fpill .fn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fpill .rm{background:none;border:1px solid rgba(245,239,223,.3);color:rgba(245,239,223,.6);padding:1px 7px;font-family:var(--mono);font-size:10px}
+.raw-ta{
+  width:100%;border:var(--bdr);background:var(--parch2);padding:14px;
+  font-family:var(--sans);font-size:14px;color:var(--ink);
+  resize:vertical;min-height:150px;line-height:1.6;margin-bottom:8px;
+}
+.raw-ta:focus{outline:none;border-color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
+.char-hint{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-bottom:10px}
+
+/* Config */
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:500px){.cfg-grid{grid-template-columns:1fr}}
+.field label{display:block;font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--ink3);margin-bottom:5px}
+.field select,.field input[type=number]{
+  width:100%;border:var(--bdr);background:var(--parch2);padding:9px 12px;
+  font-family:var(--mono);font-size:13px;color:var(--ink);appearance:none;-webkit-appearance:none;
+  box-shadow:2px 2px 0 var(--ink3);
+}
+.field select:focus,.field input:focus{outline:none;border-color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
+
+/* Difficulty */
+.diffs{display:flex;gap:0;border:var(--bdr)}
+.dbtn{
+  flex:1;padding:9px 2px;background:var(--parch2);
+  font-family:var(--mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;
+  color:var(--ink3);border-right:1px solid var(--ink3);transition:all .1s;
+}
+.dbtn:last-child{border-right:none}
+.dbtn:hover{background:var(--parch3)}
+.dbtn.active[data-d=beginner]{background:#4a9b5a;color:#fff;border-color:#4a9b5a}
+.dbtn.active[data-d=easy]{background:var(--sage);color:#fff;border-color:var(--sage)}
+.dbtn.active[data-d=medium]{background:var(--amber);color:#fff;border-color:var(--amber)}
+.dbtn.active[data-d=hard]{background:#b06030;color:#fff;border-color:#b06030}
+.dbtn.active[data-d=expert]{background:var(--rust);color:#fff;border-color:var(--rust)}
+.dbtn.active[data-d=mixed]{background:var(--ink);color:var(--parch);border-color:var(--ink)}
+
+/* Timer */
+.trow{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.tgl{position:relative;width:42px;height:22px;flex-shrink:0}
+.tgl input{opacity:0;width:0;height:0}
+.tgl-track{position:absolute;inset:0;background:var(--parch4);border:var(--bdr);cursor:pointer;transition:.2s}
+.tgl-track::before{content:'';position:absolute;width:14px;height:14px;bottom:2px;left:2px;background:var(--ink3);transition:.2s}
+input:checked+.tgl-track{background:var(--amber);border-color:var(--amber)}
+input:checked+.tgl-track::before{transform:translateX(20px);background:#fff}
+.tgl-lbl{font-family:var(--mono);font-size:12px;color:var(--ink2)}
+.tmin-wrap{display:none;align-items:center;gap:8px}
+.tmin-wrap.show{display:flex}
+.tmin-wrap input{width:62px;border:var(--bdr);background:var(--parch2);padding:7px 8px;font-family:var(--mono);font-size:13px;text-align:center;color:var(--ink)}
+.tmin-wrap span{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+
+/* CTA */
+.btn-cta{
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  border:var(--bdr-h);padding:14px 32px;font-family:var(--mono);font-size:13px;font-weight:700;
+  text-transform:uppercase;letter-spacing:1.5px;background:var(--ink);color:var(--parch);
+  box-shadow:var(--sh);transition:transform .1s,box-shadow .1s;will-change:transform;
+}
+.btn-cta:hover{box-shadow:var(--sh-h);transform:translate(-2px,-2px)}
+.btn-cta:active{box-shadow:1px 1px 0 var(--ink);transform:translate(3px,3px)}
+.btn-cta:disabled{opacity:.4;pointer-events:none}
+.btn-sec{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border:var(--bdr);padding:10px 20px;font-family:var(--mono);font-size:12px;font-weight:700;
+  text-transform:uppercase;letter-spacing:1px;background:var(--parch);color:var(--ink);
+  box-shadow:var(--sh);transition:transform .1s,box-shadow .1s;
+}
+.btn-sec:hover{box-shadow:var(--sh-h);transform:translate(-2px,-2px)}
+
+.err-box{display:none;border:2px solid var(--rust);background:rgba(168,64,32,.07);padding:10px 14px;font-family:var(--mono);font-size:12px;color:var(--rust);margin-bottom:12px}
+.err-box.show{display:block;animation:shake .3s ease}
+
+/* ═══════════════════════════════════════
+   PAGE 2 — QUIZ
+   Full viewport layout, nothing centered
+═══════════════════════════════════════ */
+#pg-quiz{
+  display:none;
+  flex-direction:column;
+  width:100%;height:100%;
+  overflow:hidden;
+}
+#pg-quiz.active{display:flex}
+
+/* Quiz topbar */
+#qtop{
+  flex-shrink:0;
+  border-bottom:var(--bdr);background:var(--parch2);
+  padding:10px 20px;
+  display:flex;align-items:center;gap:14px;
+  width:100%;
+}
+#qtitle{font-family:var(--serif);font-size:clamp(13px,2vw,17px);font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#qmeta{font-family:var(--mono);font-size:11px;color:var(--ink3);flex-shrink:0;white-space:nowrap}
+#timer{
+  font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:2px;
+  padding:4px 10px;border:var(--bdr);background:var(--parch);min-width:76px;
+  text-align:center;flex-shrink:0;display:none;
+}
+#timer.warn{color:var(--rust);border-color:var(--rust);animation:blink .6s ease infinite}
+
+/* Progress bar */
+#qbar{flex-shrink:0;height:3px;background:var(--parch3)}
+#qfill{height:100%;background:var(--amber);transition:width .4s ease;width:0%}
+
+/* STAGE — takes all remaining space */
+#stage{
+  flex:1;
+  position:relative;
+  overflow:hidden;
+  width:100%;
+  /* No padding here — card controls its own sizing */
+}
+
+/* Slides — GPU animated */
+.slide{
+  position:absolute;
+  top:0;left:0;right:0;bottom:0;
+  display:flex;align-items:center;justify-content:center;
+  padding:16px;
+  opacity:0;
+  pointer-events:none;
+  will-change:transform,opacity;
+  transform:translateX(80px);
+  transition:opacity .22s cubic-bezier(.4,0,.2,1),transform .22s cubic-bezier(.4,0,.2,1);
+}
+.slide.active{opacity:1;pointer-events:all;transform:translateX(0)}
+.slide.exit-l{opacity:0;transform:translateX(-80px);pointer-events:none}
+.slide.enter-r{opacity:0;transform:translateX(80px);pointer-events:none}
+
+/* Question card — fills available space */
+.qcard{
+  width:100%;
+  max-width:760px;
+  max-height:100%;
+  border:var(--bdr-h);background:var(--parch2);box-shadow:var(--sh-h);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.qhead{
+  background:var(--ink2);color:var(--parch);padding:10px 16px;
+  display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;
+}
+.qnum{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px}
+.qdbadge{font-family:var(--mono);font-size:9px;padding:2px 7px;text-transform:uppercase}
+.qdbadge.beginner{background:#4a9b5a33;color:#4a9b5a;border:1px solid #4a9b5a55}
+.qdbadge.easy{background:#3d6b4533;color:var(--sage);border:1px solid #3d6b4555}
+.qdbadge.medium{background:#c47f2a33;color:var(--amber);border:1px solid #c47f2a55}
+.qdbadge.hard{background:#b0603033;color:#b06030;border:1px solid #b0603055}
+.qdbadge.expert{background:#a8402033;color:var(--rust);border:1px solid #a8402055}
+.qtbadge{font-family:var(--mono);font-size:9px;padding:2px 7px;border:1px solid rgba(245,239,223,.2);color:rgba(245,239,223,.55);text-transform:uppercase}
+.qpts{font-family:var(--mono);font-size:9px;color:rgba(245,239,223,.45);margin-left:auto}
+
+.qbody{padding:20px 20px 16px;overflow-y:auto;flex:1}
+.qtext{font-size:16px;font-weight:500;line-height:1.6;margin-bottom:18px;color:var(--ink)}
+
+/* Options */
+.opts{display:flex;flex-direction:column;gap:8px}
+.obtn{
+  display:flex;align-items:center;gap:10px;
+  border:var(--bdr);background:var(--parch);padding:10px 14px;
+  width:100%;text-align:left;font-family:var(--sans);font-size:14px;color:var(--ink);
+  transition:background .1s,transform .08s,border-color .1s;will-change:transform;
+}
+.obtn:hover{background:var(--parch3);transform:translateX(3px)}
+.obtn.sel{background:var(--ink);color:var(--parch);border-color:var(--ink)}
+.oltr{
+  font-family:var(--mono);font-size:11px;font-weight:700;
+  width:22px;height:22px;border:1px solid currentColor;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.multi-hint{font-family:var(--mono);font-size:10px;color:var(--amber);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+
+/* T/F */
+.tfg{display:flex;gap:10px}
+.tfb{
+  flex:1;border:var(--bdr);background:var(--parch);padding:14px;
+  font-family:var(--mono);font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  text-align:center;transition:background .1s,color .1s,border-color .1s;
+}
+.tfb:hover{background:var(--parch3)}
+.tfb.sel[data-v=True]{background:var(--sage);color:#fff;border-color:var(--sage)}
+.tfb.sel[data-v=False]{background:var(--rust);color:#fff;border-color:var(--rust)}
+
+/* Fill blank */
+.fbi{
+  width:100%;border:var(--bdr);background:var(--parch);padding:12px;
+  font-family:var(--mono);font-size:15px;color:var(--ink);text-align:center;letter-spacing:1px;
+}
+.fbi:focus{outline:none;border-color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
+
+/* Open */
+.ota{
+  width:100%;border:var(--bdr);background:var(--parch);padding:12px;
+  font-family:var(--sans);font-size:14px;color:var(--ink);
+  resize:none;min-height:90px;max-height:180px;line-height:1.6;
+}
+.ota:focus{outline:none;border-color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
+.ccount{font-family:var(--mono);font-size:10px;color:var(--ink3);text-align:right;margin-top:4px}
+
+/* Ordering */
+.ordlist{display:flex;flex-direction:column;gap:7px}
+.ordi{
+  display:flex;align-items:center;gap:10px;border:var(--bdr);background:var(--parch);
+  padding:9px 14px;cursor:grab;user-select:none;transition:background .1s,border-color .1s;
+}
+.ordi:active{cursor:grabbing}
+.ordi.dragging{opacity:.45;background:var(--parch3)}
+.ordi.dov{border-color:var(--amber);background:rgba(196,127,42,.1)}
+.ord-h{font-family:var(--mono);font-size:12px;color:var(--ink3)}
+.ord-l{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--amber);min-width:18px}
+.ord-t{font-size:14px}
+
+/* Quiz footer */
+#qfoot{
+  flex-shrink:0;border-top:var(--bdr);background:var(--parch2);
+  padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;
+  width:100%;flex-wrap:nowrap;
+}
+.qfl{display:flex;align-items:center;gap:8px;min-width:0}
+.qfr{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.nbtn{
+  border:var(--bdr);background:var(--parch);padding:8px 14px;
+  font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  box-shadow:2px 2px 0 var(--ink3);transition:transform .1s,box-shadow .1s;white-space:nowrap;
+}
+.nbtn:hover:not(:disabled){box-shadow:var(--sh);transform:translate(-1px,-1px)}
+.nbtn:disabled{opacity:.3;pointer-events:none}
+.sdots{display:flex;gap:3px;flex-wrap:wrap;max-width:200px;overflow:hidden}
+.sdot{
+  width:8px;height:8px;border:1px solid var(--ink3);background:transparent;
+  flex-shrink:0;cursor:pointer;transition:background .15s,border-color .15s;
+}
+.sdot.ans{background:var(--amber);border-color:var(--amber)}
+.sdot.cur{background:var(--ink);border-color:var(--ink)}
+.utag{font-family:var(--mono);font-size:11px;color:var(--ink3);white-space:nowrap}
+.utag.warn{color:var(--rust);font-weight:700}
+.bend{border:var(--bdr);background:var(--rust);color:#fff;padding:8px 12px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;box-shadow:2px 2px 0 #7a1c08;transition:transform .1s,box-shadow .1s}
+.bend:hover{box-shadow:var(--sh);transform:translate(-1px,-1px)}
+.bsub{border:var(--bdr);background:var(--sage);color:#fff;padding:8px 12px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;box-shadow:2px 2px 0 #1e3d22;transition:transform .1s,box-shadow .1s}
+.bsub:hover{box-shadow:var(--sh);transform:translate(-1px,-1px)}
+
+/* ═══════════════════════════════════════
+   PAGE 3 — RESULTS
+   Full width, scrollable
+═══════════════════════════════════════ */
+#pg-results{overflow-y:auto;overflow-x:hidden}
+.res-wrap{width:100%;max-width:900px;margin:0 auto;padding:24px 20px 80px}
+
+.shero{
+  border:var(--bdr-h);background:var(--ink);color:var(--parch);
+  padding:clamp(28px,5vw,56px) clamp(16px,4vw,48px);
+  text-align:center;box-shadow:var(--sh-h);margin-bottom:0;
+  position:relative;overflow:hidden;
+}
+.shero::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(45deg,transparent,transparent 12px,rgba(196,127,42,.04) 12px,rgba(196,127,42,.04) 13px);
+  pointer-events:none;
+}
+.spct{font-family:var(--serif);font-size:clamp(60px,14vw,96px);font-weight:900;line-height:1;position:relative;animation:popIn .5s cubic-bezier(.17,.67,.29,1.5) forwards}
+.spct sub{font-size:38%;opacity:.5;vertical-align:baseline}
+.sgrade{font-family:var(--mono);font-size:clamp(16px,3vw,26px);font-weight:700;letter-spacing:4px;margin:6px 0 8px;position:relative}
+.spts{font-family:var(--mono);font-size:13px;opacity:.55;margin-bottom:10px;position:relative}
+.sremark{font-style:italic;font-size:14px;max-width:500px;margin:0 auto;opacity:.8;line-height:1.7;position:relative}
+
+.sstats{display:flex;gap:0;margin-bottom:0}
+.sstat{flex:1;border:var(--bdr);border-top:none;border-right-width:1px;padding:12px;background:var(--parch2);text-align:center}
+.sstat:last-child{border-right-width:2px}
+.ssv{font-family:var(--mono);font-size:18px;font-weight:700}
+.ssk{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--ink3);margin-top:2px}
+
+.stags{margin:16px 0}
+.slbl{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:var(--ink3);margin-bottom:8px}
+.tagrow{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-family:var(--mono);font-size:11px;padding:4px 10px;border:1px solid var(--ink3);background:var(--parch2);color:var(--ink2)}
+.tag.good{border-color:var(--sage);background:rgba(61,107,69,.08);color:var(--sage)}
+.tag.bad{border-color:var(--rust);background:rgba(168,64,32,.08);color:var(--rust)}
+.tag.tip{border-color:var(--amber);background:rgba(196,127,42,.08);color:#8a5218}
+
+.rev-title{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:var(--ink3);margin:20px 0 10px}
+.rcards{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
+.rcard{border:var(--bdr);background:var(--parch2);overflow:hidden}
+.rhead{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--parch3)}
+.rhead.cor{border-left:4px solid var(--sage)}
+.rhead.par{border-left:4px solid var(--amber)}
+.rhead.wrg{border-left:4px solid var(--rust)}
+.ricon{font-size:14px;flex-shrink:0;margin-top:1px}
+.rqt{font-size:13px;font-weight:500;flex:1;line-height:1.4}
+.rpbadge{font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 7px;flex-shrink:0;white-space:nowrap}
+.rpbadge.full{background:rgba(61,107,69,.15);color:var(--sage);border:1px solid #3d6b4540}
+.rpbadge.par{background:rgba(196,127,42,.15);color:#8a5218;border:1px solid #c47f2a40}
+.rpbadge.zero{background:rgba(168,64,32,.1);color:var(--rust);border:1px solid #a8402040}
+.rbody{padding:10px 14px;display:flex;flex-direction:column;gap:7px}
+.rrow{display:flex;gap:8px;align-items:baseline}
+.rl{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink3);min-width:90px;flex-shrink:0}
+.rv{font-family:var(--mono);font-size:12px;color:var(--ink)}
+.rrow.cRow .rv{color:var(--sage);font-weight:600}
+.rrow.wRow .rv{color:var(--rust)}
+.rremark{font-family:var(--mono);font-size:11px;color:var(--ink2);background:var(--parch3);border-left:3px solid var(--amber);padding:5px 8px;line-height:1.5}
+.rexpl{font-size:12px;color:var(--ink3);font-style:italic;line-height:1.6;border-top:1px solid var(--parch3);padding-top:8px}
+
+.rfoot{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+
+/* ═══════════════════════════════════════ MODAL (legal/credits) */
+.modal-bg{
+  display:none;position:fixed;inset:0;background:rgba(26,18,8,.6);z-index:500;
+  align-items:center;justify-content:center;padding:20px;
+  backdrop-filter:blur(2px);
+}
+.modal-bg.open{display:flex;animation:fadeIn .2s ease}
+.modal{
+  background:var(--parch);border:var(--bdr-h);box-shadow:var(--sh-h);
+  max-width:660px;width:100%;max-height:80vh;display:flex;flex-direction:column;
+}
+.modal-head{
+  padding:14px 20px;border-bottom:var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.modal-head h2{font-family:var(--serif);font-size:18px;font-weight:700}
+.modal-close{font-family:var(--mono);font-size:12px;color:var(--ink3);border:1px solid var(--ink3);padding:3px 9px}
+.modal-close:hover{background:var(--ink);color:var(--parch);border-color:var(--ink)}
+.modal-body{padding:20px;overflow-y:auto;font-size:14px;line-height:1.7;color:var(--ink2)}
+.modal-body h3{font-family:var(--serif);font-size:15px;font-weight:700;color:var(--ink);margin:16px 0 6px}
+.modal-body h3:first-child{margin-top:0}
+.modal-body p{margin-bottom:10px}
+.modal-body ul{padding-left:20px;margin-bottom:10px}
+.modal-body li{margin-bottom:4px}
+.modal-body a{color:var(--amber);text-decoration:none}
+
+/* ═══════════════════════════════════════ FOOTER BAR */
+#footer-bar{
+  flex-shrink:0;border-top:var(--bdr);background:var(--parch2);
+  padding:8px 20px;display:flex;align-items:center;justify-content:space-between;
+  font-family:var(--mono);font-size:10px;color:var(--ink3);flex-wrap:wrap;gap:6px;
+}
+#footer-bar.hide{display:none}
+.flinks{display:flex;gap:12px}
+.flink{font-family:var(--mono);font-size:10px;color:var(--ink3);text-decoration:none;border-bottom:1px solid transparent;transition:color .1s,border-color .1s}
+.flink:hover{color:var(--amber);border-bottom-color:var(--amber)}
+
+/* ═══════════════════════════════════════ LOADING */
+#ld{
+  display:none;position:fixed;inset:0;background:rgba(245,239,223,.93);z-index:999;
+  align-items:center;justify-content:center;flex-direction:column;gap:16px;
+  backdrop-filter:blur(2px);
+}
+#ld.show{display:flex;animation:fadeIn .15s ease}
+.ldspinner{width:40px;height:40px;border:3px solid var(--parch3);border-top-color:var(--amber);border-radius:50%;animation:spin .7s linear infinite}
+.ldt{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--ink3)}
+.lds{font-family:var(--mono);font-size:11px;color:var(--ink3);animation:pulse 1.4s ease infinite}
+
+/* ═══════════════════════════════════════ TOAST */
+#toast{
+  position:fixed;bottom:20px;left:50%;
+  transform:translateX(-50%) translateY(16px);
+  background:var(--ink);color:var(--parch);font-family:var(--mono);font-size:11px;
+  padding:8px 18px;border:2px solid var(--amber);box-shadow:4px 4px 0 var(--amber);
+  z-index:1000;opacity:0;transition:opacity .22s,transform .22s;pointer-events:none;white-space:nowrap;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ═══════════════════════════════════════ KEYFRAMES */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes sIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes popIn{0%{transform:scale(.75);opacity:0}65%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+@keyframes flashG{0%,100%{background:var(--parch2)}50%{background:rgba(61,107,69,.18)}}
+@keyframes flashR{0%,100%{background:var(--parch2)}50%{background:rgba(168,64,32,.12)}}
+.flG{animation:flashG .35s ease}
+.flR{animation:flashR .35s ease}
+
+/* ═══════════════════════════════════════ MOBILE */
+@media(max-width:600px){
+  #gh{padding:10px 14px}
+  .gh-right{gap:8px}
+  .upload-wrap{padding:24px 16px 72px}
+  .diffs{display:grid;grid-template-columns:repeat(2,1fr)}
+  .diffs .dbtn{border-right:1px solid var(--ink3);border-bottom:1px solid var(--ink3)}
+  .diffs .dbtn:nth-child(2n){border-right:none}
+  .diffs .dbtn:nth-last-child(-n+2){border-bottom:none}
+  .cfg-grid{grid-template-columns:1fr}
+  #qfoot{flex-direction:column;align-items:stretch}
+  .qfl,.qfr{width:100%;justify-content:space-between}
+  .qfr{flex-wrap:wrap}
+  .utag{flex:1;min-width:90px}
+  .nbtn,.bend,.bsub{padding:8px 10px;font-size:10px}
+  .sdots{display:none}
+  .qdbadge{display:none}
+  .qpts{display:none}
+  #qmeta{display:none}
+  .sstats .ssv{font-size:15px}
+  .rrow{flex-direction:column;gap:2px}
+  .rl{min-width:auto}
+}
+@media(max-width:400px){
+  .diffs .dbtn{font-size:8px;padding:8px 1px}
+  .rfoot{flex-direction:column}
+  .rfoot .btn-cta,.rfoot .btn-sec{width:100%}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+<!-- ════════════════ GLOBAL HEADER ════════════════ -->
+<header id="gh">
+  <div class="logo">Quiz<em>Forge</em></div>
+  <div class="gh-right">
+    <button class="lang-btn active" id="lb-en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="lb-fr" onclick="setLang('fr')">FR</button>
+    <div class="page-dots">
+      <div class="pdot active" id="dot0"></div>
+      <div class="pdot" id="dot1"></div>
+      <div class="pdot" id="dot2"></div>
+    </div>
+  </div>
+</header>
+
+<!-- ════════════════ PAGE 1 — UPLOAD ════════════════ -->
+<div class="pg active" id="pg-upload">
+  <div class="upload-wrap">
+    <div class="upload-hero">
+      <div class="eyebrow" data-i="step1src">Step 01 — Source</div>
+      <h1><span data-i="heroLine1">Drop a file.</span><br><em data-i="heroLine2">Get a quiz.</em></h1>
+    </div>
+
+    <div class="itabs" id="itabs">
+      <button class="itab active" data-tab="pdf" onclick="switchTab(this)">📄 PDF</button>
+      <button class="itab" data-tab="txt" onclick="switchTab(this)">✏️ <span data-i="tabTxt">Raw Text</span></button>
+    </div>
+
+    <div class="ipanel active" id="pan-pdf">
+      <div class="dz" id="dz" onclick="document.getElementById('fi').click()">
+        <span class="dz-icon">📄</span>
+        <h2 data-i="dzTitle">Click or drag PDF here</h2>
+        <p data-i="dzSub">Text-based PDFs only · Max 10MB</p>
+        <input type="file" id="fi" accept=".pdf"/>
+      </div>
+      <div class="fpill" id="fpill"><span>📎</span><span class="fn" id="fn"></span><button class="rm" onclick="clearPDF()">✕</button></div>
+    </div>
+
+    <div class="ipanel" id="pan-txt">
+      <textarea class="raw-ta" id="rawta" data-i-ph="rawPh"></textarea>
+      <div class="char-hint" id="cc">0 <span data-i="chars">characters</span></div>
+    </div>
+
+    <div class="err-box" id="uperr"></div>
+
+    <div style="margin-bottom:14px">
+      <div class="eyebrow" style="margin-bottom:10px" data-i="step2cfg">Step 02 — Configure</div>
+      <div style="margin-bottom:10px">
+        <div class="field" style="margin-bottom:8px"><label data-i="diffLabel">Difficulty Level</label></div>
+        <div class="diffs">
+          <button class="dbtn active" data-d="beginner" onclick="setDiff(this)" data-i="dBeg">Beginner</button>
+          <button class="dbtn" data-d="easy" onclick="setDiff(this)" data-i="dEasy">Easy</button>
+          <button class="dbtn" data-d="medium" onclick="setDiff(this)" data-i="dMed">Medium</button>
+          <button class="dbtn" data-d="hard" onclick="setDiff(this)" data-i="dHard">Hard</button>
+          <button class="dbtn" data-d="expert" onclick="setDiff(this)" data-i="dExp">Expert</button>
+          <button class="dbtn" data-d="mixed" onclick="setDiff(this)" data-i="dMix">Mixed</button>
+        </div>
+      </div>
+      <div class="cfg-grid">
+        <div class="field">
+          <label data-i="numQLabel">Number of Questions</label>
+          <select id="nq">
+            <option value="5">5</option><option value="8">8</option>
+            <option value="10" selected>10</option><option value="15">15</option><option value="20">20</option>
+          </select>
+        </div>
+        <div class="field">
+          <label data-i="freshLabel">Fresh Questions</label>
+          <select id="fresh">
+            <option value="1" data-i="freshYes">Yes — New each time</option>
+            <option value="0" data-i="freshNo">No — Consistent</option>
+          </select>
+        </div>
+      </div>
+      <div class="trow">
+        <label class="tgl"><input type="checkbox" id="ttgl" onchange="toggleTimer()"/><span class="tgl-track"></span></label>
+        <span class="tgl-lbl" data-i="timerLabel">Enable countdown timer</span>
+        <div class="tmin-wrap" id="tminw">
+          <input type="number" id="tmin" value="10" min="1" max="180"/>
+          <span data-i="minutes">minutes</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-cta" id="genbtn" onclick="startQuiz()" disabled>
+      ⚡ <span data-i="genBtn">Analyze &amp; Generate Quiz</span>
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════ PAGE 2 — QUIZ ════════════════ -->
+<div class="pg" id="pg-quiz">
+  <div id="qtop">
+    <div id="qtitle">—</div>
+    <div id="qmeta"></div>
+    <div id="timer">00:00</div>
+  </div>
+  <div id="qbar"><div id="qfill"></div></div>
+  <div id="stage"></div>
+  <div id="qfoot">
+    <div class="qfl">
+      <button class="nbtn" id="pbtn" onclick="gS(-1)" disabled data-i="prev">← Prev</button>
+      <div class="sdots" id="sdots"></div>
+      <button class="nbtn" id="nbtn" onclick="gS(1)" data-i="next">Next →</button>
+    </div>
+    <div class="qfr">
+      <span class="utag warn" id="utag"></span>
+      <button class="bend" onclick="endQ()" data-i="endBtn">End</button>
+      <button class="bsub" onclick="subQ()" data-i="submitBtn">Submit →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ PAGE 3 — RESULTS ════════════════ -->
+<div class="pg" id="pg-results">
+  <div class="res-wrap">
+    <div id="rhero"></div>
+    <div id="rstats"></div>
+    <div id="rtags"></div>
+    <div class="rev-title" data-i="reviewTitle">Question by Question Review</div>
+    <div id="rlist" class="rcards"></div>
+    <div class="rfoot">
+      <button class="btn-sec" onclick="retake()" data-i="retakeBtn">↩ Retry Same Document</button>
+      <button class="btn-cta" style="width:auto;padding:12px 24px" onclick="goHome()" data-i="newDocBtn">+ New Document</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ FOOTER BAR ════════════════ -->
+<div id="footer-bar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <span>© 2025 QuizForge</span>
+  </div>
+  <div class="flinks">
+    <a class="flink" href="#" onclick="openModal('privacy');return false" data-i="footPrivacy">Privacy Policy</a>
+    <a class="flink" href="#" onclick="openModal('terms');return false" data-i="footTerms">Terms of Use</a>
+    <a class="flink" href="#" onclick="openModal('credits');return false" data-i="footCredits">Credits</a>
+  </div>
+</div>
+
+<!-- ════════════════ MODALS ════════════════ -->
+<div class="modal-bg" id="modal-privacy">
+  <div class="modal">
+    <div class="modal-head"><h2 data-i="privTitle">Privacy Policy</h2><button class="modal-close" onclick="closeModal('privacy')">✕ Close</button></div>
+    <div class="modal-body" id="mbody-privacy"></div>
+  </div>
+</div>
+<div class="modal-bg" id="modal-terms">
+  <div class="modal">
+    <div class="modal-head"><h2 data-i="termsTitle">Terms of Use</h2><button class="modal-close" onclick="closeModal('terms')">✕ Close</button></div>
+    <div class="modal-body" id="mbody-terms"></div>
+  </div>
+</div>
+<div class="modal-bg" id="modal-credits">
+  <div class="modal">
+    <div class="modal-head"><h2 data-i="credTitle">Credits</h2><button class="modal-close" onclick="closeModal('credits')">✕ Close</button></div>
+    <div class="modal-body" id="mbody-credits"></div>
+  </div>
+</div>
+
+<!-- ════════════════ LOADING ════════════════ -->
+<div id="ld">
+  <div class="ldspinner"></div>
+  <div class="ldt" id="ldt">Processing</div>
+  <div class="lds" id="lds">Please wait...</div>
+</div>
+
+<!-- ════════════════ TOAST ════════════════ -->
+<div id="toast"></div>
+
+<script>
+'use strict';
+// ══════════════════════════════════════════
+// I18N
+// ══════════════════════════════════════════
+const LANGS = {
+  en:{
+    step1src:'Step 01 — Source',heroLine1:'Drop a file.',heroLine2:'Get a quiz.',
+    tabTxt:'Raw Text',
+    dzTitle:'Click or drag PDF here',dzSub:'Text-based PDFs only · Max 10MB',
+    rawPh:'Paste your notes, articles, or study material here...',
+    chars:'characters',
+    step2cfg:'Step 02 — Configure',diffLabel:'Difficulty Level',
+    dBeg:'Beginner',dEasy:'Easy',dMed:'Medium',dHard:'Hard',dExp:'Expert',dMix:'Mixed',
+    numQLabel:'Questions',freshLabel:'Fresh Questions',
+    freshYes:'Yes — New each time',freshNo:'No — Consistent',
+    timerLabel:'Enable countdown timer',minutes:'min',
+    genBtn:'Analyze & Generate Quiz',
+    prev:'← Prev',next:'Next →',endBtn:'End',submitBtn:'Submit →',
+    allDone:'✓ All answered',leftLabel:'left',
+    reviewTitle:'Question by Question Review',
+    retakeBtn:'↩ Retry Same Document',newDocBtn:'+ New Document',
+    footPrivacy:'Privacy Policy',footTerms:'Terms of Use',footCredits:'Credits',
+    privTitle:'Privacy Policy',termsTitle:'Terms of Use',credTitle:'Credits',
+    loadAnalyze:'Analyzing document',loadAnalyzeSub:'Extracting content and crafting questions...',
+    loadGrade:'Grading quiz',loadGradeSub:'Reviewing your answers fairly...',
+    errPDFOnly:'Only PDF files are supported.',errPDFSize:'File too large (max 10MB).',
+    errNoText:'Please enter at least 30 characters.',
+    errGeneric:'An error occurred. Please try again.',
+    toastPDFLoaded:'📄 PDF loaded — ready',
+    toastTimer:'⏰ 1 minute remaining!',toastTimeUp:'⏰ Time up! Submitting...',
+    mcqHint:'★ Select all that apply',
+    typeLabels:{mcq:'Multiple Choice',truefalse:'True / False',open_ended:'Open Answer',mcq_multi:'Multi-Select',fill_blank:'Fill Blank',ordering:'Ordering'},
+    trueOpt:'True',falseOpt:'False',
+    fillPh:'Fill in the blank...',openPh:'Write your answer here...',
+    gradeLabels:{A:'Excellent',B:'Good',C:'Satisfactory',D:'Needs Work',F:'Fail'},
+    yourAns:'Your answer:',correct:'Correct:',pts:'pts',
+    strengths:'✓ Strengths',reviewThese:'✗ Review These',studyTips:'💡 Study Tips',
+    endConfirm:'Submit with current answers?',
+    privBody:`<h3>Your Privacy</h3><p>QuizForge takes your privacy seriously. We do not store, sell, or share any content you upload.</p><h3>Document Processing</h3><p>Documents you upload are transmitted securely to our AI service for question generation only. They are not stored on our servers after processing is complete.</p><h3>No Account Required</h3><p>QuizForge does not require registration. We do not collect personal data such as names, email addresses, or identifiers.</p><h3>Cookies</h3><p>We do not use tracking cookies or analytics. Only essential browser storage is used for the current session.</p><h3>Contact</h3><p>For any privacy-related questions, please reach out via our support channel.</p>`,
+    termsBody:`<h3>Acceptance</h3><p>By using QuizForge, you agree to these terms.</p><h3>Acceptable Use</h3><p>QuizForge is intended for personal and educational use. You agree not to upload content that is illegal, harmful, or violates third-party rights.</p><h3>AI-Generated Content</h3><p>Quiz questions are generated by an AI system. Accuracy is not guaranteed. Always verify critical information from original sources.</p><h3>Availability</h3><p>We aim for high availability but cannot guarantee uninterrupted access. The service may be updated or changed at any time.</p><h3>Limitation of Liability</h3><p>QuizForge is provided "as-is" without warranties. We are not liable for any damages arising from its use.</p>`,
+    credBody:`<h3>QuizForge</h3><p>An AI-powered learning tool that transforms any document into a smart quiz.</p><h3>AI Engine</h3><p>Quiz generation and grading is powered by large language models via a third-party AI inference service. Results may vary based on document quality and length.</p><h3>Typography</h3><p>IBM Plex Mono and IBM Plex Sans by IBM. Playfair Display by Clément Levaillant.</p><h3>Document Processing</h3><p>PDF text extraction handled server-side using open-source libraries.</p><h3>Acknowledgements</h3><p>Built with care for students, educators, and lifelong learners.</p>`,
+  },
+  fr:{
+    step1src:'Étape 01 — Source',heroLine1:'Déposez un fichier.',heroLine2:'Obtenez un quiz.',
+    tabTxt:'Texte brut',
+    dzTitle:'Cliquez ou déposez un PDF ici',dzSub:'PDFs avec texte uniquement · Max 10 Mo',
+    rawPh:'Collez vos notes, articles ou supports d\'étude ici...',
+    chars:'caractères',
+    step2cfg:'Étape 02 — Configuration',diffLabel:'Niveau de difficulté',
+    dBeg:'Débutant',dEasy:'Facile',dMed:'Moyen',dHard:'Difficile',dExp:'Expert',dMix:'Mixte',
+    numQLabel:'Questions',freshLabel:'Nouvelles questions',
+    freshYes:'Oui — Nouvelles à chaque fois',freshNo:'Non — Consistant',
+    timerLabel:'Activer le minuteur',minutes:'min',
+    genBtn:'Analyser & Générer le quiz',
+    prev:'← Préc.',next:'Suiv. →',endBtn:'Terminer',submitBtn:'Soumettre →',
+    allDone:'✓ Tout répondu',leftLabel:'restantes',
+    reviewTitle:'Révision question par question',
+    retakeBtn:'↩ Reprendre le même document',newDocBtn:'+ Nouveau document',
+    footPrivacy:'Politique de confidentialité',footTerms:'Conditions d\'utilisation',footCredits:'Crédits',
+    privTitle:'Politique de confidentialité',termsTitle:'Conditions d\'utilisation',credTitle:'Crédits',
+    loadAnalyze:'Analyse du document',loadAnalyzeSub:'Extraction du contenu et création des questions...',
+    loadGrade:'Correction du quiz',loadGradeSub:'Révision équitable de vos réponses...',
+    errPDFOnly:'Seuls les fichiers PDF sont pris en charge.',errPDFSize:'Fichier trop volumineux (max 10 Mo).',
+    errNoText:'Veuillez saisir au moins 30 caractères.',
+    errGeneric:'Une erreur s\'est produite. Veuillez réessayer.',
+    toastPDFLoaded:'📄 PDF chargé — prêt',
+    toastTimer:'⏰ 1 minute restante !',toastTimeUp:'⏰ Temps écoulé ! Soumission...',
+    mcqHint:'★ Sélectionnez tout ce qui s\'applique',
+    typeLabels:{mcq:'Choix multiple',truefalse:'Vrai / Faux',open_ended:'Réponse ouverte',mcq_multi:'Multi-sélection',fill_blank:'Compléter',ordering:'Mise en ordre'},
+    trueOpt:'Vrai',falseOpt:'Faux',
+    fillPh:'Compléter la phrase...',openPh:'Rédigez votre réponse ici...',
+    gradeLabels:{A:'Excellent',B:'Bien',C:'Satisfaisant',D:'À améliorer',F:'Insuffisant'},
+    yourAns:'Votre réponse :',correct:'Correct :',pts:'pts',
+    strengths:'✓ Points forts',reviewThese:'✗ À revoir',studyTips:'💡 Conseils',
+    endConfirm:'Soumettre avec les réponses actuelles ?',
+    privBody:`<h3>Votre vie privée</h3><p>QuizForge prend votre confidentialité au sérieux. Nous ne stockons, ne vendons ni ne partageons aucun contenu que vous téléchargez.</p><h3>Traitement des documents</h3><p>Les documents téléchargés sont transmis de manière sécurisée à notre service d'IA uniquement pour la génération de questions. Ils ne sont pas conservés sur nos serveurs après traitement.</p><h3>Aucun compte requis</h3><p>QuizForge ne nécessite pas d'inscription. Nous ne collectons pas de données personnelles.</p><h3>Cookies</h3><p>Nous n'utilisons pas de cookies de suivi ou d'analyse.</p><h3>Contact</h3><p>Pour toute question relative à la confidentialité, veuillez nous contacter via notre canal de support.</p>`,
+    termsBody:`<h3>Acceptation</h3><p>En utilisant QuizForge, vous acceptez ces conditions.</p><h3>Usage acceptable</h3><p>QuizForge est destiné à un usage personnel et éducatif. Vous vous engagez à ne pas télécharger de contenu illégal ou portant atteinte aux droits de tiers.</p><h3>Contenu généré par IA</h3><p>Les questions sont générées par un système d'IA. L'exactitude n'est pas garantie. Vérifiez toujours les informations critiques à partir des sources originales.</p><h3>Disponibilité</h3><p>Nous visons une haute disponibilité mais ne pouvons pas garantir un accès ininterrompu.</p><h3>Limitation de responsabilité</h3><p>QuizForge est fourni "tel quel" sans garanties.</p>`,
+    credBody:`<h3>QuizForge</h3><p>Un outil d'apprentissage alimenté par l'IA qui transforme tout document en quiz intelligent.</p><h3>Moteur IA</h3><p>La génération et la correction des quiz sont alimentées par des grands modèles de langage via un service d'inférence IA tiers.</p><h3>Typographie</h3><p>IBM Plex Mono et IBM Plex Sans par IBM. Playfair Display par Clément Levaillant.</p><h3>Traitement des documents</h3><p>L'extraction de texte PDF est gérée côté serveur avec des bibliothèques open source.</p><h3>Remerciements</h3><p>Conçu avec soin pour les étudiants, les enseignants et les apprenants tout au long de la vie.</p>`,
+  }
+};
+let LANG = 'en';
+function t(k){ return (LANGS[LANG]||LANGS.en)[k]||k }
+function setLang(l){
+  LANG=l;
+  document.getElementById('lb-en').classList.toggle('active',l==='en');
+  document.getElementById('lb-fr').classList.toggle('active',l==='fr');
+  document.documentElement.lang=l;
+  applyI18n();
+}
+function applyI18n(){
+  document.querySelectorAll('[data-i]').forEach(el=>{
+    const k=el.dataset.i,v=t(k);
+    if(v&&v!==k) el.textContent=v;
+  });
+  document.querySelectorAll('[data-i-ph]').forEach(el=>{
+    const k=el.dataset.iPh,v=t(k);
+    if(v&&v!==k) el.placeholder=v;
+  });
+  // Update select option texts
+  const fs=document.getElementById('fresh');
+  if(fs){fs.options[0].text=t('freshYes');fs.options[1].text=t('freshNo');}
+  updateModalBodies();
+}
+function updateModalBodies(){
+  const mb=document.getElementById('mbody-privacy');if(mb)mb.innerHTML=t('privBody');
+  const mt=document.getElementById('mbody-terms');if(mt)mt.innerHTML=t('termsBody');
+  const mc=document.getElementById('mbody-credits');if(mc)mc.innerHTML=t('credBody');
+}
+
+// ══════════════════════════════════════════
+// SOUND (Web Audio API)
+// ══════════════════════════════════════════
+let actx=null;
+function ac(){if(!actx)try{actx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}; return actx;}
+function tone(f,d,type='sine',g=.15,fade=true){
+  try{
+    const c=ac();if(!c)return;
+    const o=c.createOscillator(),gn=c.createGain();
+    o.connect(gn);gn.connect(c.destination);
+    o.type=type;o.frequency.value=f;
+    gn.gain.setValueAtTime(g,c.currentTime);
+    if(fade)gn.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);
+    o.start();o.stop(c.currentTime+d);
+  }catch(e){}
+}
+const SFX={
+  click:()=>tone(440,.06,'square',.07),
+  sel:()=>{tone(523,.1,'sine',.12);setTimeout(()=>tone(659,.1,'sine',.1),55)},
+  nav:dir=>tone(dir>0?392:330,.08,'sine',.09),
+  ok:()=>{[523,659,784].forEach((f,i)=>setTimeout(()=>tone(f,.15,'sine',.11),i*75))},
+  fail:()=>{tone(220,.15,'sawtooth',.09);setTimeout(()=>tone(196,.2,'sawtooth',.07),100)},
+  submit:()=>{[392,494,587,659,784].forEach((f,i)=>setTimeout(()=>tone(f,.12,'sine',.1),i*55))},
+  start:()=>{[392,494,587].forEach((f,i)=>setTimeout(()=>tone(f,.1,'sine',.09),i*90))},
+  tick:()=>tone(880,.04,'square',.06),
+};
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+const S={
+  itype:'pdf',pdfB64:null,rawText:null,fname:null,
+  diff:'beginner',numQ:10,useTimer:false,tMin:10,
+  qdata:null,ans:{},ordState:{},slide:0,
+  tInt:null,tSecs:0,qstart:null,
+  animating:false,
+};
+const API='http://localhost:5000';
+
+// ══════════════════════════════════════════
+// FILE HANDLING
+// ══════════════════════════════════════════
+function dzSetup(dzEl,onFile){
+  dzEl.addEventListener('dragover',e=>{e.preventDefault();dzEl.classList.add('drag')});
+  dzEl.addEventListener('dragleave',()=>dzEl.classList.remove('drag'));
+  dzEl.addEventListener('drop',e=>{e.preventDefault();dzEl.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)onFile(f)});
+}
+dzSetup(document.getElementById('dz'),handlePDF);
+document.getElementById('fi').addEventListener('change',e=>{ if(e.target.files[0])handlePDF(e.target.files[0])});
+document.getElementById('rawta').addEventListener('input',function(){
+  S.rawText=this.value;
+  document.getElementById('cc').innerHTML=this.value.length+' <span data-i="chars">'+t('chars')+'</span>';
+  chkReady();
+});
+
+function handlePDF(f){
+  if(!f.name.toLowerCase().endsWith('.pdf')){showErr(t('errPDFOnly'));return}
+  if(f.size>10*1024*1024){showErr(t('errPDFSize'));return}
+  hideErr();S.fname=f.name;
+  new FileReader().onload=e=>{S.pdfB64=e.target.result.split(',')[1];document.getElementById('fn').textContent=f.name;document.getElementById('fpill').classList.add('show');SFX.click();toast(t('toastPDFLoaded'));chkReady()};
+  (()=>{const r=new FileReader();r.onload=e=>{S.pdfB64=e.target.result.split(',')[1];document.getElementById('fn').textContent=f.name;document.getElementById('fpill').classList.add('show');SFX.click();toast(t('toastPDFLoaded'));chkReady()};r.readAsDataURL(f)})();
+}
+function clearPDF(){S.pdfB64=null;S.fname=null;document.getElementById('fi').value='';document.getElementById('fpill').classList.remove('show');chkReady()}
+function chkReady(){
+  const ok=(S.itype==='pdf'&&S.pdfB64)||(S.itype==='txt'&&S.rawText?.trim().length>30);
+  document.getElementById('genbtn').disabled=!ok;
+}
+function switchTab(btn){
+  document.querySelectorAll('.itab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.ipanel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');S.itype=btn.dataset.tab;
+  document.getElementById('pan-'+S.itype).classList.add('active');
+  chkReady();SFX.click();
+}
+function setDiff(btn){
+  document.querySelectorAll('.dbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');S.diff=btn.dataset.d;SFX.click();
+}
+function toggleTimer(){S.useTimer=document.getElementById('ttgl').checked;document.getElementById('tminw').classList.toggle('show',S.useTimer)}
+
+
+// ══════════════════════════════════════════
+// GENERATE
+// ══════════════════════════════════════════
+async function startQuiz(){
+  S.numQ=parseInt(document.getElementById('nq').value);
+  S.tMin=parseInt(document.getElementById('tmin').value)||10;
+  const fresh=document.getElementById('fresh').value==='1';
+
+  const payload={difficulty:S.diff,num_questions:S.numQ,seed:fresh?Math.floor(Math.random()*90000)+10000:42,input_type:'pdf'};
+  if(S.itype==='pdf') payload.pdf_base64=S.pdfB64;
+  else if(S.itype==='txt'){payload.input_type='text';payload.raw_text=S.rawText}
+
+  showLoad(t('loadAnalyze'),t('loadAnalyzeSub'));
+  try{
+    const headers = {'Content-Type':'application/json'};
+    const r=await fetch(`${API}/api/analyze`,{method:'POST',headers,body:JSON.stringify(payload)});
+    const j=await r.json();
+
+    if(!j.success)throw new Error(j.error||t('errGeneric'));
+
+    S.qdata=j.data;S.ans={};S.ordState={};S.qstart=Date.now();
+    hideLoad();SFX.start();
+    buildQuiz();goPg('quiz');
+    if(S.useTimer)startTimer();
+  }catch(e){hideLoad();showErr(e.message)}
+}
+
+// ══════════════════════════════════════════
+// BUILD QUIZ
+// ══════════════════════════════════════════
+function buildQuiz(){
+  const{document:doc,questions:qs}=S.qdata;
+  document.getElementById('qtitle').textContent=doc.title||'Quiz';
+  document.getElementById('qmeta').textContent=`${qs.length} Qs · ${S.diff}`;
+  if(S.useTimer)document.getElementById('timer').style.display='block';
+  // Dots
+  const dotsEl=document.getElementById('sdots');dotsEl.innerHTML='';
+  qs.forEach((_,i)=>{const d=document.createElement('div');d.className='sdot';d.id='sd'+i;d.title='Q'+(i+1);d.onclick=()=>{gSlide(i);SFX.click()};dotsEl.appendChild(d)});
+  // Slides
+  const stage=document.getElementById('stage');stage.innerHTML='';
+  qs.forEach((q,i)=>{
+    const sl=document.createElement('div');sl.className='slide';sl.id='sl'+i;
+    sl.appendChild(mkCard(q));stage.appendChild(sl);
+  });
+  S.slide=-1;gSlide(0,false);
+}
+
+function mkCard(q){
+  const c=document.createElement('div');c.className='qcard';
+  const tl=t('typeLabels');
+  const typeLbl=tl[q.type]||q.type;
+  const diff=q.difficulty||S.diff;
+  const difflbls={beginner:t('dBeg'),easy:t('dEasy'),medium:t('dMed'),hard:t('dHard'),expert:t('dExp'),mixed:t('dMix')};
+  c.innerHTML=`<div class="qhead">
+    <span class="qnum">Q${q.id} / ${S.qdata.questions.length}</span>
+    <span class="qdbadge ${diff}">${difflbls[diff]||diff}</span>
+    <span class="qtbadge">${typeLbl}</span>
+    <span class="qpts">${q.points||1} ${t('pts')}</span>
+  </div>
+  <div class="qbody">
+    <div class="qtext">${escH(q.question)}</div>
+    <div id="aa${q.id}"></div>
+  </div>`;
+  // async fill answer area
+  requestAnimationFrame(()=>{
+    const aa=document.getElementById('aa'+q.id);if(!aa)return;
+    aa.innerHTML=mkAA(q);
+    if(q.type==='ordering')initOrd(q);
+    if(q.type==='open_ended'||q.type==='fill_blank'){
+      const inp=document.getElementById('inp'+q.id);
+      if(inp){
+        inp.addEventListener('input',e=>{S.ans[q.id]=e.target.value;updFoot();updDots();const cc=document.getElementById('cc'+q.id);if(cc)cc.textContent=e.target.value.length+' '+t('chars')});
+        if(S.ans[q.id])inp.value=S.ans[q.id];
+      }
+    }
+  });
+  return c;
+}
+
+function mkAA(q){
+  const uid=q.id;
+  if(q.type==='mcq'){
+    const L=['A','B','C','D','E'];
+    return`<div class="opts">${q.options.map((o,i)=>{const l=L[i]||i;const s=S.ans[uid]===l;return`<button class="obtn${s?' sel':''}" data-qid="${uid}" data-v="${l}" onclick="selMCQ(this)"><span class="oltr">${l}</span><span>${escH(o.replace(/^[A-E]\.\s*/,''))}</span></button>`}).join('')}</div>`;
+  }
+  if(q.type==='mcq_multi'){
+    const L=['A','B','C','D','E'];const sel=(S.ans[uid]||'').split(',').filter(Boolean);
+    return`<div class="multi-hint">${t('mcqHint')}</div><div class="opts">${q.options.map((o,i)=>{const l=L[i]||i;return`<button class="obtn${sel.includes(l)?' sel':''}" data-qid="${uid}" data-v="${l}" onclick="selMulti(this)"><span class="oltr">${l}</span><span>${escH(o.replace(/^[A-E]\.\s*/,''))}</span></button>`}).join('')}</div>`;
+  }
+  if(q.type==='truefalse'){
+    const uv=S.ans[uid];
+    return`<div class="tfg"><button class="tfb${uv==='True'?' sel':''}" data-qid="${uid}" data-v="True" onclick="selTF(this)">✓ ${t('trueOpt')}</button><button class="tfb${uv==='False'?' sel':''}" data-qid="${uid}" data-v="False" onclick="selTF(this)">✗ ${t('falseOpt')}</button></div>`;
+  }
+  if(q.type==='fill_blank'){
+    return`<input class="fbi" id="inp${uid}" type="text" placeholder="${escH(t('fillPh'))}" value="${escH(S.ans[uid]||'')}"/><div class="ccount" id="cc${uid}">${(S.ans[uid]||'').length} ${t('chars')}</div>`;
+  }
+  if(q.type==='ordering'){
+    if(!S.ordState[uid])S.ordState[uid]=[...(q.options||[])];
+    return`<div class="ordlist" id="ol${uid}">${S.ordState[uid].map((item,i)=>`<div class="ordi" draggable="true" data-idx="${i}" data-qid="${uid}"><span class="ord-h">⠿</span><span class="ord-l">${i+1}</span><span class="ord-t">${escH(item)}</span></div>`).join('')}</div>`;
+  }
+  return`<textarea class="ota" id="inp${uid}" placeholder="${escH(t('openPh'))}">${escH(S.ans[uid]||'')}</textarea><div class="ccount" id="cc${uid}">${(S.ans[uid]||'').length} ${t('chars')}</div>`;
+}
+
+// ══════════════════════════════════════════
+// ANSWER HANDLERS
+// ══════════════════════════════════════════
+function selMCQ(btn){
+  const qid=btn.dataset.qid;
+  document.querySelectorAll(`[data-qid="${qid}"].obtn`).forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');S.ans[qid]=btn.dataset.v;SFX.sel();updFoot();updDots();
+  flashCard(btn,true);
+}
+function selMulti(btn){
+  const qid=btn.dataset.qid,v=btn.dataset.v;
+  let sel=(S.ans[qid]||'').split(',').filter(Boolean);
+  if(sel.includes(v)){sel=sel.filter(x=>x!==v);btn.classList.remove('sel')}else{sel.push(v);btn.classList.add('sel')}
+  S.ans[qid]=sel.join(',');SFX.sel();updFoot();updDots();
+}
+function selTF(btn){
+  const qid=btn.dataset.qid;
+  document.querySelectorAll(`[data-qid="${qid}"].tfb`).forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');S.ans[qid]=btn.dataset.v;SFX.sel();updFoot();updDots();
+  flashCard(btn,btn.dataset.v==='True');
+}
+function flashCard(el,ok){
+  const c=el.closest('.qcard');if(!c)return;
+  c.classList.remove('flG','flR');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>c.classList.add(ok?'flG':'flR')));
+  setTimeout(()=>c.classList.remove('flG','flR'),350);
+}
+function initOrd(q){
+  const list=document.getElementById('ol'+q.id);if(!list)return;
+  let drag=null;
+  list.querySelectorAll('.ordi').forEach(item=>{
+    item.addEventListener('dragstart',e=>{drag=parseInt(item.dataset.idx);item.classList.add('dragging');e.dataTransfer.effectAllowed='move'});
+    item.addEventListener('dragend',()=>item.classList.remove('dragging'));
+    item.addEventListener('dragover',e=>{e.preventDefault();item.classList.add('dov')});
+    item.addEventListener('dragleave',()=>item.classList.remove('dov'));
+    item.addEventListener('drop',e=>{
+      e.preventDefault();item.classList.remove('dov');
+      const di=parseInt(item.dataset.idx);if(drag===null||drag===di)return;
+      const arr=S.ordState[q.id];const mv=arr.splice(drag,1)[0];arr.splice(di,0,mv);
+      S.ordState[q.id]=arr;
+      const L=['A','B','C','D','E','F'];const orig=q.options;
+      S.ans[q.id]=arr.map(it=>L[orig.indexOf(it)]).join(',');
+      const aa=document.getElementById('aa'+q.id);if(aa){aa.innerHTML=mkAA(q);initOrd(q)}
+      SFX.sel();updFoot();updDots();
+    });
+  });
+}
+
+// ══════════════════════════════════════════
+// SLIDESHOW — GPU transitions
+// ══════════════════════════════════════════
+function gS(dir){
+  const n=S.slide+dir;
+  if(n<0||n>=S.qdata.questions.length)return;
+  gSlide(n);SFX.nav(dir);
+}
+function gSlide(idx,animate=true){
+  if(S.animating)return;
+  const slides=document.querySelectorAll('.slide');
+  const prev=S.slide;
+  if(prev>=0&&prev<slides.length){
+    if(animate){
+      S.animating=true;
+      slides[prev].classList.remove('active');
+      slides[prev].classList.add(idx>prev?'exit-l':'enter-r');
+      setTimeout(()=>{slides[prev]?.classList.remove('exit-l','enter-r');S.animating=false},240);
+    }else{
+      slides[prev].classList.remove('active');
+    }
+  }
+  S.slide=idx;
+  slides[idx].classList.remove('exit-l','enter-r');
+  // Force GPU layer & trigger transition
+  slides[idx].style.willChange='transform,opacity';
+  requestAnimationFrame(()=>{
+    slides[idx].classList.add('active');
+  });
+  updFoot();updDots();
+}
+function updDots(){
+  if(!S.qdata)return;
+  S.qdata.questions.forEach((q,i)=>{
+    const d=document.getElementById('sd'+i);if(!d)return;
+    const ans=isAns(q);
+    d.className='sdot'+(i===S.slide?' cur':ans?' ans':'');
+  });
+}
+function isAns(q){const a=S.ans[q.id];return a&&String(a).trim().length>0}
+function updFoot(){
+  if(!S.qdata)return;
+  const qs=S.qdata.questions,total=qs.length;
+  const ans=qs.filter(q=>isAns(q)).length;
+  const un=total-ans;
+  document.getElementById('qfill').style.width=((ans/total)*100)+'%';
+  document.getElementById('pbtn').disabled=S.slide===0;
+  document.getElementById('nbtn').disabled=S.slide===total-1;
+  const ut=document.getElementById('utag');
+  ut.textContent=un>0?`${un} ${t('leftLabel')}`:t('allDone');
+  ut.className='utag'+(un>0?' warn':'');
+}
+
+// ══════════════════════════════════════════
+// TIMER
+// ══════════════════════════════════════════
+function startTimer(){
+  S.tSecs=S.tMin*60;updTDisplay();
+  S.tInt=setInterval(()=>{
+    S.tSecs--;updTDisplay();
+    if(S.tSecs===60)toast(t('toastTimer'));
+    if(S.tSecs%60===0&&S.tSecs>0)SFX.tick();
+    if(S.tSecs<=30)document.getElementById('timer').classList.add('warn');
+    if(S.tSecs<=0){clearInterval(S.tInt);toast(t('toastTimeUp'));setTimeout(subQ,1500)}
+  },1000);
+}
+function stopTimer(){if(S.tInt){clearInterval(S.tInt);S.tInt=null}}
+function updTDisplay(){const m=Math.floor(S.tSecs/60),s=S.tSecs%60;const el=document.getElementById('timer');if(el)el.textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`}
+
+// ══════════════════════════════════════════
+// SUBMIT
+// ══════════════════════════════════════════
+function endQ(){if(confirm(t('endConfirm')))subQ()}
+async function subQ(){
+  stopTimer();
+  const tt=Math.floor((Date.now()-S.qstart)/1000);
+  SFX.submit();
+  showLoad(t('loadGrade'),t('loadGradeSub'));
+  try{
+    const r=await fetch(`${API}/api/grade`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({questions:S.qdata.questions,user_answers:S.ans,document_info:S.qdata.document,time_taken:tt})});
+    const j=await r.json();
+    if(!j.success)throw new Error(j.error||t('errGeneric'));
+    hideLoad();mkResults(j.data);goPg('results');
+  }catch(e){hideLoad();showErr(e.message);goPg('upload')}
+}
+
+// ══════════════════════════════════════════
+// RESULTS
+// ══════════════════════════════════════════
+function mkResults(d){
+  const{score,overall_remark,question_reviews,missed_topics,strengths,study_tips,time_taken_seconds}=d;
+  const gc={A:'#3d6b45',B:'#5a7a3a',C:'#c47f2a',D:'#b06030',F:'#a84020'}[score.grade]||'#c47f2a';
+  const gl=t('gradeLabels')[score.grade]||score.grade_label||score.grade;
+  document.getElementById('rhero').innerHTML=`<div class="shero"><div class="spct">${score.percentage}<sub>%</sub></div><div class="sgrade" style="color:${gc}">${score.grade} — ${escH(gl)}</div><div class="spts">${score.points_earned} / ${score.points_max} ${t('pts')}</div><div class="sremark">"${escH(overall_remark)}"</div></div>`;
+  const m=Math.floor(time_taken_seconds/60),s=time_taken_seconds%60;
+  document.getElementById('rstats').innerHTML=`<div class="sstats"><div class="sstat"><div class="ssv">${score.points_earned}/${score.points_max}</div><div class="ssk">${t('pts').toUpperCase()}</div></div><div class="sstat"><div class="ssv">${score.percentage}%</div><div class="ssk">SCORE</div></div><div class="sstat"><div class="ssv">${score.grade}</div><div class="ssk">GRADE</div></div><div class="sstat"><div class="ssv">${m}m${s}s</div><div class="ssk">TIME</div></div></div>`;
+  let tags='';
+  if(strengths?.length)tags+=`<div class="slbl">${t('strengths')}</div><div class="tagrow">${strengths.map(s=>`<span class="tag good">✓ ${escH(s)}</span>`).join('')}</div>`;
+  if(missed_topics?.length)tags+=`<div class="slbl" style="margin-top:12px">${t('reviewThese')}</div><div class="tagrow">${missed_topics.map(mt=>`<span class="tag bad">✗ ${escH(mt)}</span>`).join('')}</div>`;
+  if(study_tips?.length)tags+=`<div class="slbl" style="margin-top:12px">${t('studyTips')}</div><div class="tagrow">${study_tips.map(tp=>`<span class="tag tip">💡 ${escH(tp)}</span>`).join('')}</div>`;
+  document.getElementById('rtags').innerHTML=`<div class="stags">${tags}</div>`;
+  const rl=document.getElementById('rlist');rl.innerHTML='';
+  (question_reviews||[]).forEach(r=>{
+    const qo=S.qdata.questions.find(q=>q.id===r.id)||{};
+    const par=r.partial&&!r.correct;
+    const hcls=r.correct?'cor':par?'par':'wrg';
+    const icon=r.correct?'✓':par?'◑':'✗';
+    const ptCls=r.correct?'full':par?'par':'zero';
+    const pa=r.points_awarded??(r.correct?(qo.points||1):0);
+    const pm=r.points_max??(qo.points||1);
+    const card=document.createElement('div');card.className='rcard';
+    card.innerHTML=`<div class="rhead ${hcls}"><span class="ricon">${icon}</span><span class="rqt">Q${r.id}: ${escH(qo.question||'')}</span><span class="rpbadge ${ptCls}">${pa}/${pm} ${t('pts')}</span></div><div class="rbody">${r.remark?`<div class="rremark">${escH(r.remark)}</div>`:''}<div class="rrow ${r.correct?'cRow':'wRow'}"><span class="rl">${t('yourAns')}</span><span class="rv">${escH(r.user_answer)||'<em>—</em>'}</span></div>${!r.correct?`<div class="rrow cRow"><span class="rl">${t('correct')}</span><span class="rv">${escH(r.correct_answer)}</span></div>`:''}<div class="rexpl">${escH(r.explanation)}</div></div>`;
+    rl.appendChild(card);
+  });
+  if(score.percentage>=80)SFX.ok();else if(score.percentage>=50)SFX.nav(1);else SFX.fail();
+}
+
+// ══════════════════════════════════════════
+// PAGE NAVIGATION
+// ══════════════════════════════════════════
+function goPg(name){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pg-'+name).classList.add('active');
+  const idx={upload:0,quiz:1,results:2}[name]||0;
+  document.querySelectorAll('.pdot').forEach((d,i)=>{d.className='pdot'+(i<idx?' done':i===idx?' active':'')});
+  // Show/hide footer
+  const fb=document.getElementById('footer-bar');
+  fb.classList.toggle('hide',name==='quiz');
+  // Body overflow
+  document.body.style.overflow=name==='quiz'?'hidden':'';
+}
+function retake(){stopTimer();S.ans={};S.ordState={};S.tSecs=0;document.getElementById('timer').classList.remove('warn');goPg('upload')}
+function goHome(){
+  retake();clearPDF();S.pdfB64=null;S.rawText=null;S.qdata=null;
+  document.getElementById('fpill').classList.remove('show');
+  document.getElementById('rawta').value='';document.getElementById('cc').innerHTML='0 <span>'+t('chars')+'</span>';
+  document.getElementById('genbtn').disabled=true;goPg('upload');
+}
+
+// ══════════════════════════════════════════
+// MODALS
+// ══════════════════════════════════════════
+function openModal(id){updateModalBodies();document.getElementById('modal-'+id).classList.add('open')}
+function closeModal(id){document.getElementById('modal-'+id).classList.remove('open')}
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}));
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function showLoad(t2,s2){document.getElementById('ldt').textContent=t2;document.getElementById('lds').textContent=s2;document.getElementById('ld').classList.add('show')}
+function hideLoad(){document.getElementById('ld').classList.remove('show')}
+function showErr(msg){const e=document.getElementById('uperr');e.textContent='⚠ '+msg;e.classList.add('show')}
+function hideErr(){document.getElementById('uperr').classList.remove('show')}
+function toast(msg,dur=3200){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur)}
+function escH(s){if(s===null||s===undefined)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+// Keyboard nav
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('pg-quiz').classList.contains('active'))return;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'){gS(1);e.preventDefault()}
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){gS(-1);e.preventDefault()}
+});
+
+// Init
+applyI18n();
+</script>
+</body>
+</html>
