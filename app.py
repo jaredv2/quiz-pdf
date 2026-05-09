@@ -39,7 +39,7 @@ MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 def extract_pdf_text(b64: str) -> str:
     if not PDF_AVAILABLE:
-        return ""
+        raise RuntimeError("PyPDF2 is not installed on the server")
     pdf_bytes = base64.b64decode(b64)
     text = ""
     try:
@@ -107,7 +107,10 @@ def analyze():
     if input_type == "pdf":
         if "pdf_base64" not in body:
             return jsonify({"error": "Missing pdf_base64"}), 400
-        content_text = extract_pdf_text(body["pdf_base64"])
+        try:
+            content_text = extract_pdf_text(body["pdf_base64"])
+        except RuntimeError as e:
+            return jsonify({"error": str(e)}), 500
         if not content_text:
             return jsonify({"error": "Could not extract text. The PDF may be image-only (needs OCR) or empty."}), 400
     elif input_type == "text":
